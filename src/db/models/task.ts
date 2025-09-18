@@ -1,20 +1,19 @@
-// models/Movie.js
-import mongoose, { Schema, Document, Types } from "mongoose";
-import type { IUser } from "./User.js";
+import mongoose, { Schema, Types } from "mongoose";
+import type { Document } from "mongoose";
+import type { IUser } from "./user.js";
 
 export interface ITask extends Document {
-  id: string;
   title: string;
   description: string;
   status: string;
   assignedTo: IUser["_id"];
   createdAt: Date;
   finishedAt: Date;
+  project: Types.ObjectId;
 }
 
-const TaskSchema = new mongoose.Schema(
+const TaskSchema = new Schema(
   {
-    id: { type: String, required: true, unique: true },
     title: { type: String, required: true, index: true },
     description: { type: String },
     status: {
@@ -24,8 +23,9 @@ const TaskSchema = new mongoose.Schema(
     },
     assignedTo: { type: Types.ObjectId, ref: "User" },
     createdAt: { type: Date, default: Date.now },
-    finishedAt: { type: Date },
+    finishedAt: { type: Date, default: null },
+    project: { type: Types.ObjectId, ref: "Project" },
   },
   { collection: "tasks" }
 );
-export const Task = mongoose.model<ITask>("Task", TaskSchema);
+export const TaskModel = mongoose.model<ITask>("Task", TaskSchema);

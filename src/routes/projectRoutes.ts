@@ -1,20 +1,19 @@
 import express from "express";
 import mongoose from "mongoose";
 import {
-  createTask,
-  findTasks,
-  findTask,
-  updateTask,
-  deleteTask,
-  statusChangeTask,
-  assignedTask,
-} from "../db/taskCrud.js";
+  createProject,
+  findProjects,
+  findProject,
+  updateProject,
+  deleteProject,
+  assignTaskToProject,
+} from "../db/projectCrud.js";
 const router = express.Router();
 
 router.post("/", async (req, res) => {
   try {
-    const newTask = await createTask(req.body);
-    res.status(201).json(newTask);
+    const newProject = await createProject(req.body);
+    res.status(201).json(newProject);
   } catch (err) {
     if (err instanceof Error) {
       res.status(500).json({ error: err.message });
@@ -29,8 +28,8 @@ router.post("/", async (req, res) => {
 });
 router.get("/", async (req, res) => {
   try {
-    const task = await findTasks();
-    res.status(201).json(task);
+    const project = await findProjects();
+    res.status(201).json(project);
   } catch (err) {
     if (err instanceof Error) {
       res.status(500).json({ error: err.message });
@@ -46,10 +45,10 @@ router.get("/:id", async (req, res) => {
   }
 
   try {
-    const task = await findTask(id);
-    if (!task) return res.status(404).json({ error: "Task not found." });
+    const project = await findProject(id);
+    if (!project) return res.status(404).json({ error: "Project not found." });
 
-    res.status(201).json(task);
+    res.status(201).json(project);
   } catch (err) {
     if (err instanceof Error) {
       res.status(500).json({ error: err.message });
@@ -65,10 +64,11 @@ router.put("/:id", async (req, res) => {
   }
 
   try {
-    const updatedTask = await updateTask(id, req.body);
-    if (!updatedTask) return res.status(404).json({ error: "Task not found." });
+    const updatedProject = await updateProject(id, req.body);
+    if (!updatedProject)
+      return res.status(404).json({ error: "Project not found." });
 
-    res.status(201).json(updatedTask);
+    res.status(201).json(updatedProject);
   } catch (err) {
     if (err instanceof Error) {
       res.status(500).json({ error: err.message });
@@ -84,29 +84,11 @@ router.delete("/:id", async (req, res) => {
   }
 
   try {
-    const deletedTask = await deleteTask(id);
-    if (!deletedTask) return res.status(404).json({ error: "Task not found." });
+    const deletedProject = await deleteProject(id);
+    if (!deletedProject)
+      return res.status(404).json({ error: "Project not found." });
 
-    res.status(201).json(deletedTask);
-  } catch (err) {
-    if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: "An unknown error occurred" });
-    }
-  }
-});
-
-router.put("/status/:id", async (req, res) => {
-  const id = req.params.id;
-  if (!mongoose.isValidObjectId(id)) {
-    return res.status(400).json({ error: "Invalid ID" });
-  }
-  try {
-    const doneStatus = req.body.status === "done" ? new Date() : null;
-    const updatedTask = await statusChangeTask(id, req.body.status, doneStatus);
-
-    res.status(201).json(updatedTask);
+    res.status(201).json(deletedProject);
   } catch (err) {
     if (err instanceof Error) {
       res.status(500).json({ error: err.message });
@@ -117,21 +99,21 @@ router.put("/status/:id", async (req, res) => {
 });
 
 router.put("/assign/:id", async (req, res) => {
-  const taskId = req.params.id;
-  const userId = req.body.userId;
-  if (!userId) {
+  const projectId = req.params.id;
+  const taskId = req.body.taskId;
+  if (!taskId) {
     return res.status(400).json({ error: "userId is required" });
   }
 
-  if (!mongoose.isValidObjectId(taskId)) {
-    return res.status(400).json({ error: "Invalid TaskID" });
+  if (!mongoose.isValidObjectId(projectId)) {
+    return res.status(400).json({ error: "Invalid ProjectId" });
   }
-  if (!mongoose.isValidObjectId(userId)) {
-    return res.status(400).json({ error: "Invalid UserID" });
+  if (!mongoose.isValidObjectId(taskId)) {
+    return res.status(400).json({ error: "Invalid TaskId" });
   }
 
   try {
-    const updatedTask = await assignedTask(taskId, userId);
+    const updatedTask = await assignTaskToProject(projectId, taskId);
 
     res.status(201).json(updatedTask);
   } catch (err) {

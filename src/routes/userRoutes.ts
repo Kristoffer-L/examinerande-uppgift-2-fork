@@ -7,12 +7,12 @@ import {
   updateUser,
   deleteUser,
 } from "../db/userCrud.js";
-import jwt from "jsonwebtoken";
+import type { Request, Response } from "express";
 import bcrypt from "bcrypt";
 
 const router = express.Router();
 
-router.post("/", async (req, res) => {
+router.post("/", async (req: Request, res: Response) => {
   try {
     const { password, ...rest } = req.body;
 
@@ -39,7 +39,7 @@ router.post("/", async (req, res) => {
     }
   }
 });
-router.get("/", async (req, res) => {
+router.get("/", async (req: Request, res: Response) => {
   try {
     const user = await findUsers();
     res.status(201).json(user);
@@ -51,8 +51,12 @@ router.get("/", async (req, res) => {
     }
   }
 });
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req: Request, res: Response) => {
   const id = req.params.id;
+
+  if (!id) {
+    return res.status(400).json({ error: "ID is required" });
+  }
   if (!mongoose.isValidObjectId(id)) {
     return res.status(400).json({ error: "Invalid ID" });
   }
@@ -68,11 +72,16 @@ router.get("/:id", async (req, res) => {
     }
   }
 });
-router.put("/:id", async (req, res) => {
+router.put("/:id", async (req: Request, res: Response) => {
   const id = req.params.id;
+
+  if (!id) {
+    return res.status(400).json({ error: "ID is required" });
+  }
   if (!mongoose.isValidObjectId(id)) {
     return res.status(400).json({ error: "Invalid ID" });
   }
+
   try {
     const updatedUser = await updateUser(id, req.body);
     res.status(201).json(updatedUser);
@@ -84,11 +93,16 @@ router.put("/:id", async (req, res) => {
     }
   }
 });
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", async (req: Request, res: Response) => {
   const id = req.params.id;
+
+  if (!id) {
+    return res.status(400).json({ error: "ID is required" });
+  }
   if (!mongoose.isValidObjectId(id)) {
     return res.status(400).json({ error: "Invalid ID" });
   }
+
   try {
     const deletedUser = await deleteUser(id);
     res.status(201).json(deletedUser);

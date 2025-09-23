@@ -9,11 +9,17 @@ import {
   statusChangeTask,
   assignedTask,
 } from "../db/taskCrud.js";
+import type { Request, Response } from "express";
+import auth from "../middleware/authMiddleware.js";
 const router = express.Router();
 
-router.post("/", async (req, res) => {
+router.post("/:projectId", async (req: Request, res: Response) => {
+  const projectId = req.params.projectId;
+  if (!projectId) {
+    return res.status(400).json({ error: "Project ID is required" });
+  }
   try {
-    const newTask = await createTask(req.body);
+    const newTask = await createTask(req.body, projectId);
     res.status(201).json(newTask);
   } catch (err) {
     if (err instanceof Error) {
@@ -27,7 +33,7 @@ router.post("/", async (req, res) => {
     }
   }
 });
-router.get("/", async (req, res) => {
+router.get("/", async (req: Request, res: Response) => {
   try {
     const task = await findTasks();
     res.status(201).json(task);
@@ -39,8 +45,12 @@ router.get("/", async (req, res) => {
     }
   }
 });
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req: Request, res: Response) => {
   const id = req.params.id;
+
+  if (!id) {
+    return res.status(400).json({ error: "ID is required" });
+  }
   if (!mongoose.isValidObjectId(id)) {
     return res.status(400).json({ error: "Invalid ID" });
   }
@@ -58,8 +68,12 @@ router.get("/:id", async (req, res) => {
     }
   }
 });
-router.put("/:id", async (req, res) => {
+router.put("/:id", async (req: Request, res: Response) => {
   const id = req.params.id;
+
+  if (!id) {
+    return res.status(400).json({ error: "ID is required" });
+  }
   if (!mongoose.isValidObjectId(id)) {
     return res.status(400).json({ error: "Invalid ID" });
   }
@@ -77,8 +91,12 @@ router.put("/:id", async (req, res) => {
     }
   }
 });
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", async (req: Request, res: Response) => {
   const id = req.params.id;
+
+  if (!id) {
+    return res.status(400).json({ error: "ID is required" });
+  }
   if (!mongoose.isValidObjectId(id)) {
     return res.status(400).json({ error: "Invalid ID" });
   }
@@ -97,14 +115,24 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-router.put("/status/:id", async (req, res) => {
+router.put("/status/:id", auth, async (req: Request, res: Response) => {
   const id = req.params.id;
+  const userId = req.user?.userId;
+  if (!id) {
+    return res.status(400).json({ error: "ID is required" });
+  }
   if (!mongoose.isValidObjectId(id)) {
     return res.status(400).json({ error: "Invalid ID" });
   }
   try {
     const doneStatus = req.body.status === "done" ? new Date() : null;
-    const updatedTask = await statusChangeTask(id, req.body.status, doneStatus);
+    const doneUserId = req.body.status === "done" ? userId : null;
+    const updatedTask = await statusChangeTask(
+      id,
+      req.body.status,
+      doneStatus,
+      doneUserId
+    );
 
     res.status(201).json(updatedTask);
   } catch (err) {
@@ -116,9 +144,13 @@ router.put("/status/:id", async (req, res) => {
   }
 });
 
-router.put("/assign/:id", async (req, res) => {
+router.put("/assign/:id", async (req: Request, res: Response) => {
   const taskId = req.params.id;
   const userId = req.body.userId;
+
+  if (!taskId) {
+    return res.status(400).json({ error: "taskId is required" });
+  }
   if (!userId) {
     return res.status(400).json({ error: "userId is required" });
   }

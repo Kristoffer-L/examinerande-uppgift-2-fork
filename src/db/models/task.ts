@@ -3,17 +3,19 @@ import type { Document } from "mongoose";
 import type { IUser } from "./user.js";
 
 export interface ITask extends Document {
+  projectId: Types.ObjectId;
   title: string;
   description: string;
   status: string;
-  assignedTo: IUser["_id"];
+  assignedTo: IUser["_id"] | null;
   createdAt: Date;
   finishedAt: Date;
-  project: Types.ObjectId;
+  finishedBy: IUser["_id"] | null;
 }
 
 const TaskSchema = new Schema(
   {
+    projectId: { type: Types.ObjectId, ref: "Project" },
     title: { type: String, required: true, index: true },
     description: { type: String },
     status: {
@@ -21,10 +23,11 @@ const TaskSchema = new Schema(
       enum: ["to-do", "in progress", "blocked", "done"],
       default: "to-do",
     },
+
     assignedTo: { type: Types.ObjectId, ref: "User" },
     createdAt: { type: Date, default: Date.now },
     finishedAt: { type: Date, default: null },
-    project: { type: Types.ObjectId, ref: "Project" },
+    finishedBy: { type: Types.ObjectId, ref: "User", default: null },
   },
   { collection: "tasks" }
 );

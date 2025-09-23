@@ -2,10 +2,11 @@ import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { signinUser } from "../db/authCrud.js";
+import type { Request, Response } from "express";
 
 const router = express.Router();
 
-router.post("/signin", async (req, res) => {
+router.post("/signin", async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 

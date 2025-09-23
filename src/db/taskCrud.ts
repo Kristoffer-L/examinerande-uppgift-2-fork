@@ -1,9 +1,19 @@
 import { TaskModel } from "./models/task.js";
+import { ProjectModel } from "./models/project.js";
 import type { ITask } from "./models/task.js";
 
-export const createTask = async (task: ITask) => {
-  const newTask = new TaskModel(task);
-  return await newTask.save();
+export const createTask = async (task: ITask, projectId: string) => {
+  const taskWithProject = {
+    ...task,
+    projectId: projectId,
+  };
+  const newTask = await new TaskModel(taskWithProject).save();
+  const updatedProject = await ProjectModel.findByIdAndUpdate(
+    projectId,
+    { $push: { tasks: newTask._id } },
+    { new: true }
+  );
+  return { newTask, updatedProject };
 };
 
 export const findTasks = async () => {
@@ -29,13 +39,15 @@ export const deleteTask = async (id: string) => {
 export const statusChangeTask = async (
   taskId: string,
   taskStatus: string,
-  doneStatus: Date | null
+  doneStatus: Date | null,
+  doneUserId?: string | null
 ) => {
   return TaskModel.findByIdAndUpdate(
     taskId,
     {
       status: taskStatus,
       finishedAt: doneStatus,
+      finishedBy: doneUserId,
     },
     {
       new: true,

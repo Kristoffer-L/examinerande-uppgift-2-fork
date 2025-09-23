@@ -3,8 +3,12 @@ import { ProjectModel } from "./models/project.js";
 import { TaskModel } from "./models/task.js";
 import type { IProject } from "./models/project.js";
 
-export const createProject = async (project: IProject) => {
-  const newProject = new ProjectModel(project);
+export const createProject = async (project: IProject, user: string) => {
+  const projectWithOwner = {
+    ...project,
+    ownerId: new Types.ObjectId(user), // Ensure ownerId is an ObjectId
+  };
+  const newProject = new ProjectModel(projectWithOwner);
   return await newProject.save();
 };
 

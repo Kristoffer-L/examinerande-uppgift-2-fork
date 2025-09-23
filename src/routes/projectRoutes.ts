@@ -8,11 +8,22 @@ import {
   deleteProject,
   assignTaskToProject,
 } from "../db/projectCrud.js";
+import type { Request, Response } from "express";
+import auth from "../middleware/authMiddleware.js";
 const router = express.Router();
 
-router.post("/", async (req, res) => {
+router.post("/", auth, async (req: Request, res: Response) => {
+  console.log("Request user:", req.user?.userId);
+  if (!req.user?.userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  if (!mongoose.isValidObjectId(req.user.userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+
   try {
-    const newProject = await createProject(req.body);
+    const newProject = await createProject(req.body, req.user.userId);
     res.status(201).json(newProject);
   } catch (err) {
     if (err instanceof Error) {
@@ -26,7 +37,8 @@ router.post("/", async (req, res) => {
     }
   }
 });
-router.get("/", async (req, res) => {
+
+router.get("/", async (req: Request, res: Response) => {
   try {
     const project = await findProjects();
     res.status(201).json(project);
@@ -38,8 +50,13 @@ router.get("/", async (req, res) => {
     }
   }
 });
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req: Request, res: Response) => {
   const id = req.params.id;
+
+  if (!id) {
+    return res.status(400).json({ error: "ID is required" });
+  }
+
   if (!mongoose.isValidObjectId(id)) {
     return res.status(400).json({ error: "Invalid ID" });
   }
@@ -57,16 +74,24 @@ router.get("/:id", async (req, res) => {
     }
   }
 });
-router.put("/:id", async (req, res) => {
+
+router.put("/:id", async (req: Request, res: Response) => {
   const id = req.params.id;
+
+  if (!id) {
+    return res.status(400).json({ error: "ID is required" });
+  }
+
   if (!mongoose.isValidObjectId(id)) {
     return res.status(400).json({ error: "Invalid ID" });
   }
 
   try {
     const updatedProject = await updateProject(id, req.body);
-    if (!updatedProject)
+
+    if (!updatedProject) {
       return res.status(404).json({ error: "Project not found." });
+    }
 
     res.status(201).json(updatedProject);
   } catch (err) {
@@ -77,16 +102,24 @@ router.put("/:id", async (req, res) => {
     }
   }
 });
-router.delete("/:id", async (req, res) => {
+
+router.delete("/:id", async (req: Request, res: Response) => {
   const id = req.params.id;
+
+  if (!id) {
+    return res.status(400).json({ error: "ID is required" });
+  }
+
   if (!mongoose.isValidObjectId(id)) {
     return res.status(400).json({ error: "Invalid ID" });
   }
 
   try {
     const deletedProject = await deleteProject(id);
-    if (!deletedProject)
+
+    if (!deletedProject) {
       return res.status(404).json({ error: "Project not found." });
+    }
 
     res.status(201).json(deletedProject);
   } catch (err) {
@@ -98,11 +131,15 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-router.put("/assign/:id", async (req, res) => {
+router.put("/assign/:id", async (req: Request, res: Response) => {
   const projectId = req.params.id;
   const taskId = req.body.taskId;
+
+  if (!projectId) {
+    return res.status(400).json({ error: "projectId is required" });
+  }
   if (!taskId) {
-    return res.status(400).json({ error: "userId is required" });
+    return res.status(400).json({ error: "taskId is required" });
   }
 
   if (!mongoose.isValidObjectId(projectId)) {

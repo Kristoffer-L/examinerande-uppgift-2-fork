@@ -11,14 +11,20 @@ import {
 } from "../db/taskCrud.js";
 import type { Request, Response } from "express";
 import auth from "../middleware/authMiddleware.js";
+import getUserRoleInProject from "../utils/getUserRoleInProject.js";
 const router = express.Router();
 
-router.post("/:projectId", async (req: Request, res: Response) => {
+router.post("/:projectId", auth, async (req: Request, res: Response) => {
   const projectId = req.params.projectId;
   if (!projectId) {
     return res.status(400).json({ error: "Project ID is required" });
   }
   try {
+    const role = await getUserRoleInProject(projectId, req.user!.userId);
+    if (role !== "admin" && role !== "member") {
+      return res.status(403).json({ error: "Missing permission" });
+    }
+
     const newTask = await createTask(req.body, projectId);
     res.status(201).json(newTask);
   } catch (err) {
@@ -68,7 +74,7 @@ router.get("/:id", async (req: Request, res: Response) => {
     }
   }
 });
-router.put("/:id", async (req: Request, res: Response) => {
+router.put("/:id", auth, async (req: Request, res: Response) => {
   const id = req.params.id;
 
   if (!id) {
@@ -79,6 +85,25 @@ router.put("/:id", async (req: Request, res: Response) => {
   }
 
   try {
+    const task = await findTask(id);
+    if (!task) {
+      return res.status(400).json({ error: "task is required" });
+    }
+    if (!task.projectId) {
+      return res.status(400).json({ error: "projectId is required" });
+    }
+
+    const projectId = task.projectId;
+
+    if (!projectId) {
+      return res.status(400).json({ error: "projectId is required" });
+    }
+
+    const role = await getUserRoleInProject(projectId, req.user!.userId);
+    if (role !== "admin" || "member") {
+      return res.status(403).json({ error: "Missing permission" });
+    }
+
     const updatedTask = await updateTask(id, req.body);
     if (!updatedTask) return res.status(404).json({ error: "Task not found." });
 
@@ -102,6 +127,25 @@ router.delete("/:id", async (req: Request, res: Response) => {
   }
 
   try {
+    const task = await findTask(id);
+    if (!task) {
+      return res.status(400).json({ error: "task is required" });
+    }
+    if (!task.projectId) {
+      return res.status(400).json({ error: "projectId is required" });
+    }
+
+    const projectId = task.projectId;
+
+    if (!projectId) {
+      return res.status(400).json({ error: "projectId is required" });
+    }
+
+    const role = await getUserRoleInProject(projectId, req.user!.userId);
+    if (role !== "admin" || "member") {
+      return res.status(403).json({ error: "Missing permission" });
+    }
+
     const deletedTask = await deleteTask(id);
     if (!deletedTask) return res.status(404).json({ error: "Task not found." });
 
@@ -125,6 +169,25 @@ router.put("/status/:id", auth, async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Invalid ID" });
   }
   try {
+    const task = await findTask(id);
+    if (!task) {
+      return res.status(400).json({ error: "task is required" });
+    }
+    if (!task.projectId) {
+      return res.status(400).json({ error: "projectId is required" });
+    }
+
+    const projectId = task.projectId;
+
+    if (!projectId) {
+      return res.status(400).json({ error: "projectId is required" });
+    }
+
+    const role = await getUserRoleInProject(projectId, req.user!.userId);
+    if (role !== "admin" || "member") {
+      return res.status(403).json({ error: "Missing permission" });
+    }
+
     const doneStatus = req.body.status === "done" ? new Date() : null;
     const doneUserId = req.body.status === "done" ? userId : null;
     const updatedTask = await statusChangeTask(
@@ -163,6 +226,24 @@ router.put("/assign/:id", async (req: Request, res: Response) => {
   }
 
   try {
+    const task = await findTask(taskId);
+    if (!task) {
+      return res.status(400).json({ error: "task is required" });
+    }
+    if (!task.projectId) {
+      return res.status(400).json({ error: "projectId is required" });
+    }
+
+    const projectId = task.projectId;
+
+    if (!projectId) {
+      return res.status(400).json({ error: "projectId is required" });
+    }
+
+    const role = await getUserRoleInProject(projectId, req.user!.userId);
+    if (role !== "admin" || "member") {
+      return res.status(403).json({ error: "Missing permission" });
+    }
     const updatedTask = await assignedTask(taskId, userId);
 
     res.status(201).json(updatedTask);

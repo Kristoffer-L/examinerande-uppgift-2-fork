@@ -6,10 +6,12 @@ import {
   findProject,
   updateProject,
   deleteProject,
-  assignTaskToProject,
+  assignUserToProject,
+  changeUserRoleInProject,
 } from "../db/projectCrud.js";
 import type { Request, Response } from "express";
 import auth from "../middleware/authMiddleware.js";
+import getUserRoleInProject from "../utils/getUserRoleInProject.js";
 const router = express.Router();
 
 router.post("/", auth, async (req: Request, res: Response) => {
@@ -50,6 +52,7 @@ router.get("/", async (req: Request, res: Response) => {
     }
   }
 });
+
 router.get("/:id", async (req: Request, res: Response) => {
   const id = req.params.id;
 
@@ -75,7 +78,7 @@ router.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.put("/:id", async (req: Request, res: Response) => {
+router.put("/:id", auth, async (req: Request, res: Response) => {
   const id = req.params.id;
 
   if (!id) {
@@ -86,7 +89,19 @@ router.put("/:id", async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Invalid ID" });
   }
 
+  if (!req.user?.userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  if (!mongoose.isValidObjectId(req.user.userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+
   try {
+    const role = await getUserRoleInProject(id, req.user!.userId);
+    if (role !== "admin") {
+      return res.status(403).json({ error: "Missing permission" });
+    }
     const updatedProject = await updateProject(id, req.body);
 
     if (!updatedProject) {
@@ -103,7 +118,7 @@ router.put("/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.delete("/:id", async (req: Request, res: Response) => {
+router.delete("/:id", auth, async (req: Request, res: Response) => {
   const id = req.params.id;
 
   if (!id) {
@@ -114,7 +129,19 @@ router.delete("/:id", async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Invalid ID" });
   }
 
+  if (!req.user?.userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  if (!mongoose.isValidObjectId(req.user.userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+
   try {
+    const role = await getUserRoleInProject(id, req.user!.userId);
+    if (role !== "admin") {
+      return res.status(403).json({ error: "Missing permission" });
+    }
     const deletedProject = await deleteProject(id);
 
     if (!deletedProject) {
@@ -131,28 +158,88 @@ router.delete("/:id", async (req: Request, res: Response) => {
   }
 });
 
-router.put("/assign/:id", async (req: Request, res: Response) => {
+router.post("/user/:id", auth, async (req: Request, res: Response) => {
   const projectId = req.params.id;
-  const taskId = req.body.taskId;
+  const userId = req.body.userId;
 
   if (!projectId) {
     return res.status(400).json({ error: "projectId is required" });
   }
-  if (!taskId) {
-    return res.status(400).json({ error: "taskId is required" });
+
+  if (!userId) {
+    return res.status(400).json({ error: "userId is required" });
   }
 
   if (!mongoose.isValidObjectId(projectId)) {
-    return res.status(400).json({ error: "Invalid ProjectId" });
+    return res.status(400).json({ error: "Invalid projectId" });
   }
-  if (!mongoose.isValidObjectId(taskId)) {
-    return res.status(400).json({ error: "Invalid TaskId" });
+
+  if (!mongoose.isValidObjectId(userId)) {
+    return res.status(400).json({ error: "Invalid userId" });
+  }
+
+  if (!req.user?.userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  if (!mongoose.isValidObjectId(req.user.userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
   }
 
   try {
-    const updatedTask = await assignTaskToProject(projectId, taskId);
+    const role = await getUserRoleInProject(projectId, req.user!.userId);
+    if (role !== "admin") {
+      return res.status(403).json({ error: "Missing permission" });
+    }
+
+    const updatedTask = await assignUserToProject(projectId, userId);
 
     res.status(201).json(updatedTask);
+  } catch (err) {
+    if (err instanceof Error) {
+      res.status(500).json({ error: err.message });
+    } else {
+      res.status(500).json({ error: "An unknown error occurred" });
+    }
+  }
+});
+
+router.put("/user/:id", auth, async (req: Request, res: Response) => {
+  const projectId = req.params.id;
+  const userId = req.body.userId;
+  const newRole = req.body.newRole;
+  if (!projectId) {
+    return res.status(400).json({ error: "projectId is required" });
+  }
+
+  if (!userId) {
+    return res.status(400).json({ error: "userId is required" });
+  }
+
+  if (!newRole) {
+    return res.status(400).json({ error: "newRole is required" });
+  }
+
+  if (!req.user?.userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  if (!mongoose.isValidObjectId(req.user.userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+
+  try {
+    const role = await getUserRoleInProject(projectId, req.user!.userId);
+    if (role !== "admin") {
+      return res.status(403).json({ error: "Missing permission" });
+    }
+    const updatedRole = await changeUserRoleInProject(
+      projectId,
+      userId,
+      newRole
+    );
+
+    res.status(201).json(updatedRole);
   } catch (err) {
     if (err instanceof Error) {
       res.status(500).json({ error: err.message });

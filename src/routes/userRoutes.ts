@@ -16,6 +16,19 @@ router.post("/", async (req: Request, res: Response) => {
   try {
     const { password, ...rest } = req.body;
 
+    if (password.length < 6) {
+      throw new Error("Password must be at least 6 characters long");
+    }
+
+    if (password.length > 20) {
+      throw new Error("Password cannot exceed 20 characters");
+    }
+
+    const isValid = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{6,}$/.test(
+      password
+    );
+    if (!isValid) throw new Error("Invalid password");
+
     if (!password) {
       return res.status(400).json({ error: "Password is required" });
     }

@@ -6,7 +6,8 @@ import type { IProject } from "./models/project.js";
 export const createProject = async (project: IProject, user: string) => {
   const projectWithOwner = {
     ...project,
-    ownerId: new Types.ObjectId(user), // Ensure ownerId is an ObjectId
+    ownerId: new Types.ObjectId(user),
+    users: [{ userId: new Types.ObjectId(user), role: "admin" }],
   };
   const newProject = new ProjectModel(projectWithOwner);
   return await newProject.save();
@@ -17,7 +18,7 @@ export const findProjects = async () => {
   return projects;
 };
 
-export const findProject = async (id: string) => {
+export const findProject = async (id: string | Types.ObjectId) => {
   return ProjectModel.findById(id);
 };
 
@@ -45,6 +46,48 @@ export const assignTaskToProject = async (
   if (!project.tasks.includes(objectId)) {
     project.tasks.push(objectId);
   }
+  await project.save();
+  return project;
+};
+
+export const assignUserToProject = async (
+  projectId: string,
+  userId: string
+) => {
+  const project = await ProjectModel.findById(projectId);
+  if (!project) throw new Error("Project not found");
+
+  const objectId = new Types.ObjectId(userId);
+
+  const alreadyAssigned = project.users.some(
+    (user) => user.userId?.toString?.() === objectId.toString?.()
+  );
+
+  if (!alreadyAssigned) {
+    project.users.push({ userId: objectId, role: "viewer" });
+  } else {
+    throw new Error("User already assigned to project");
+  }
+
+  await project.save();
+  return project;
+};
+
+export const changeUserRoleInProject = async (
+  projectId: string,
+  userId: string,
+  newRole: "admin" | "member" | "viewer"
+) => {
+  const project = await ProjectModel.findById(projectId);
+  if (!project) throw new Error("Project not found");
+  const objectId = new Types.ObjectId(userId);
+
+  const user = project.users.find(
+    (user) => user.userId?.toString?.() === objectId.toString?.()
+  );
+  if (!user) throw new Error("User not assigned to project");
+
+  user.role = newRole;
   await project.save();
   return project;
 };

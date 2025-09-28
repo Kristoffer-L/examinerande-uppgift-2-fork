@@ -7,7 +7,15 @@ Målet är att skapa ett REST-API för en projekthanterings-applikation vid namn
 ### Teoretiska resonemang
 
 - Motivera ditt val av databas
+
+  Mitt val av databas var baserat på vad jag behövde utbilda mig i. mongoDB har varit rätt nytt och jag har kunnat lära mig mycket inom mongoose(ODM). hade även tanken på att spara utrymme i databasen med att hoppa över vissa fält när dem inte används, det skutade dock med att jag använder value av null vid läge där objektet är tomt, ett exempel på detta är assignTo i task modellen
+
 - Redogör vad de olika teknikerna (ex. verktyg, npm-paket, etc.) gör i applikationen
+
+  denna kanban lösning är gjord med en backend med express och mongoDB samt mongoose för modeller. Jag har användt mig att typescript i denna uppgift som har skapat dist mappar för att kunna compilea typescript koden.
+
+  vid autentisering så har jag användt jsonwebtoken för att skapa en bearer token, använder även bcrypt för att kryptera samt kontrollerar lösenordet vid läge att man loggar in.
+
 - Redogör översiktligt hur applikationen fungerar
 
 ### Krav för Godkänt

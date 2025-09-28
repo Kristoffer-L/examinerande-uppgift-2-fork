@@ -66,3 +66,14 @@ export const assignedTask = async (taskId: string, userId: string) => {
     }
   );
 };
+
+export const assignTags = async (taskId: string, tag: string) => {
+  return TaskModel.findByIdAndUpdate(
+    taskId,
+    { tags: tag },
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+};

@@ -8,6 +8,7 @@ import {
   deleteTask,
   statusChangeTask,
   assignedTask,
+  assignTags,
 } from "../db/taskCrud.js";
 import type { Request, Response } from "express";
 import auth from "../middleware/authMiddleware.js";
@@ -39,6 +40,7 @@ router.post("/:projectId", auth, async (req: Request, res: Response) => {
     }
   }
 });
+
 router.get("/", async (req: Request, res: Response) => {
   try {
     const task = await findTasks();
@@ -74,6 +76,7 @@ router.get("/:id", async (req: Request, res: Response) => {
     }
   }
 });
+
 router.put("/:id", auth, async (req: Request, res: Response) => {
   const id = req.params.id;
 
@@ -100,7 +103,7 @@ router.put("/:id", auth, async (req: Request, res: Response) => {
     }
 
     const role = await getUserRoleInProject(projectId, req.user!.userId);
-    if (role !== "admin" || "member") {
+    if (role !== "admin" && role !== "member") {
       return res.status(403).json({ error: "Missing permission" });
     }
 
@@ -116,6 +119,7 @@ router.put("/:id", auth, async (req: Request, res: Response) => {
     }
   }
 });
+
 router.delete("/:id", async (req: Request, res: Response) => {
   const id = req.params.id;
 
@@ -142,7 +146,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
     }
 
     const role = await getUserRoleInProject(projectId, req.user!.userId);
-    if (role !== "admin" || "member") {
+    if (role !== "admin" && role !== "member") {
       return res.status(403).json({ error: "Missing permission" });
     }
 
@@ -184,7 +188,7 @@ router.put("/status/:id", auth, async (req: Request, res: Response) => {
     }
 
     const role = await getUserRoleInProject(projectId, req.user!.userId);
-    if (role !== "admin" || "member") {
+    if (role !== "admin" && role !== "member") {
       return res.status(403).json({ error: "Missing permission" });
     }
 
@@ -241,10 +245,53 @@ router.put("/assign/:id", async (req: Request, res: Response) => {
     }
 
     const role = await getUserRoleInProject(projectId, req.user!.userId);
-    if (role !== "admin" || "member") {
+    if (role !== "admin" && role !== "member") {
       return res.status(403).json({ error: "Missing permission" });
     }
     const updatedTask = await assignedTask(taskId, userId);
+
+    res.status(201).json(updatedTask);
+  } catch (err) {
+    if (err instanceof Error) {
+      res.status(500).json({ error: err.message });
+    } else {
+      res.status(500).json({ error: "An unknown error occurred" });
+    }
+  }
+});
+
+router.put("/tags/:id", auth, async (req: Request, res: Response) => {
+  const id = req.params.id;
+  const tags = req.body.tags;
+  const userId = req.user?.userId;
+
+  if (!id) {
+    return res.status(400).json({ error: "ID is required" });
+  }
+  if (!tags) {
+    return res.status(400).json({ error: "tags is required" });
+  }
+  try {
+    const task = await findTask(id);
+    if (!task) {
+      return res.status(400).json({ error: "task is required" });
+    }
+    if (!task.projectId) {
+      return res.status(400).json({ error: "projectId is required" });
+    }
+
+    const projectId = task.projectId;
+
+    if (!projectId) {
+      return res.status(400).json({ error: "projectId is required" });
+    }
+
+    const role = await getUserRoleInProject(projectId, req.user!.userId);
+    if (role !== "admin" && role !== "member") {
+      return res.status(403).json({ error: "Missing permission" });
+    }
+
+    const updatedTask = await assignTags(id, tags);
 
     res.status(201).json(updatedTask);
   } catch (err) {

@@ -7,7 +7,7 @@ export interface ITask extends Document {
   title: string;
   description: string;
   status: string;
-  // tags: string;
+  tags: string;
   assignedTo: IUser["_id"] | null;
   createdAt: Date;
   finishedAt: Date;
@@ -30,11 +30,11 @@ const TaskSchema = new Schema(
       enum: ["to-do", "in progress", "blocked", "done"],
       default: "to-do",
     },
-    // tags: {
-    //   type: String,
-    //   enum: ["frontend", "backend", "design", "database"],
-    //   default: "",
-    // },
+    tags: {
+      type: String,
+      enum: ["frontend", "backend", "design", "database"],
+      default: null,
+    },
     assignedTo: { type: Types.ObjectId, ref: "User" },
     createdAt: { type: Date, default: Date.now },
     finishedAt: { type: Date, default: null },

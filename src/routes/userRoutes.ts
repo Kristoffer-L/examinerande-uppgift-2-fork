@@ -96,7 +96,39 @@ router.put("/:id", async (req: Request, res: Response) => {
   }
 
   try {
-    const updatedUser = await updateUser(id, req.body);
+    let updateData = { ...req.body };
+
+    if (req.body.password) {
+      const { password } = req.body;
+
+      if (password.length < 6) {
+        return res
+          .status(400)
+          .json({ error: "Password must be at least 6 characters long" });
+      }
+
+      if (password.length > 20) {
+        return res
+          .status(400)
+          .json({ error: "Password cannot exceed 20 characters" });
+      }
+
+      const isValid = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]{6,}$/.test(
+        password
+      );
+      if (!isValid) {
+        return res
+          .status(400)
+          .json({ error: "Password must contain letters and numbers" });
+      }
+
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+      updateData.password = hashedPassword;
+    }
+
+    const updatedUser = await updateUser(id, updateData);
     res.status(201).json(updatedUser);
   } catch (err) {
     if (err instanceof Error) {

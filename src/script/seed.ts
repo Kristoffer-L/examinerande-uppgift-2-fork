@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { Types } from "mongoose";
 import dotenv from "dotenv";
 import { faker } from "@faker-js/faker";
 import { ProjectModel } from "../db/models/project.js";
@@ -34,17 +35,15 @@ async function seedDatabase() {
     UserModel.deleteMany({}),
   ]);
 
+  // === Create 3 users ===
   const users = await Promise.all(
-    Array.from({ length: 10 }).map(async (arg, index) => {
-      const plainPassword = `Password${index}`;
+    Array.from({ length: 3 }).map(async (arg, index) => {
+      const plainPassword = `Password${index + 1}`;
       const hashedPassword = await bcrypt.hash(plainPassword, saltRounds);
 
       return {
-        name: faker.internet.username().substring(0, 20),
-        email:
-          faker.internet.email().toLowerCase() +
-          Date.now() +
-          Math.floor(Math.random() * 1000),
+        name: `name${index + 1}`,
+        email: `user${index + 1}@example.com`,
         password: hashedPassword,
       };
     })
@@ -54,41 +53,54 @@ async function seedDatabase() {
   });
   console.log("Inserted userDocs:", userDocs.length);
 
-  const projects = await Promise.all(
-    Array.from({ length: 10 }).map(() => {
-      const ownerId = rand(userDocs)._id;
+  // === Create 3 projects for each user ===
+  const projects: any[] = [];
+  for (const user of userDocs) {
+    for (let i = 0; i < 3; i++) {
+      const otherUsers = userDocs.filter(
+        (u) => !(u._id as Types.ObjectId).equals(user._id as Types.ObjectId)
+      );
 
-      return {
-        title: faker.company.name(),
+      projects.push({
+        title: `project${i + 1}`,
         description: faker.lorem.sentence(),
         tasks: [],
-        ownerId: ownerId,
+        ownerId: user._id,
         users: [
           {
-            userId: ownerId,
+            userId: user._id,
             role: "admin",
           },
           {
-            userId: rand(userDocs)._id,
+            userId: rand(otherUsers)._id,
             role: rand(["viewer", "member", "admin"]),
           },
         ],
-      };
-    })
-  );
+      });
+    }
+  }
+
   const projectDocs = await ProjectModel.insertMany(projects, {
     ordered: false,
   });
   console.log("Inserted projects:", projectDocs.length);
 
-  const tasks = Array.from({ length: 20 }).map(() => ({
-    projectId: rand(projectDocs)._id,
-    title: faker.company.name(),
-    description: faker.lorem.sentence(),
-    status: rand(["todo", "in-progress", "blocked"]),
-    tags: rand(["frontend", "backend", "design", "database", ""]),
-    assignedTo: rand(userDocs)._id,
-  }));
+  // === Create 5 tasks for each project ===
+  const tasks: any[] = [];
+  for (const project of projectDocs) {
+    for (let i = 0; i < 5; i++) {
+      const projectUserIds = project.users.map((u: any) => u.userId);
+      tasks.push({
+        projectId: project._id,
+        title: `task${i + 1}`,
+        description: faker.lorem.sentence(),
+        status: faker.helpers.arrayElement(["to-do", "inprogress", "blocked"]),
+        tags: rand(["frontend", "backend", "design", "database", null]),
+        assignedTo: rand(projectUserIds),
+      });
+    }
+  }
+
   const taskDocs = await TaskModel.insertMany(tasks, { ordered: false });
   console.log("Inserted taskDocs:", taskDocs.length);
 

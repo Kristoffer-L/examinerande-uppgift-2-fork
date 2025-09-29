@@ -15,7 +15,6 @@ import getUserRoleInProject from "../utils/getUserRoleInProject.js";
 const router = express.Router();
 
 router.post("/", auth, async (req: Request, res: Response) => {
-  console.log("Request user:", req.user?.userId);
   if (!req.user?.userId) {
     return res.status(400).json({ error: "User ID is required" });
   }
@@ -53,6 +52,35 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
+router.get("/user", auth, async (req: Request, res: Response) => {
+  const id = req.user!.userId;
+
+  if (!req.user?.userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  if (!mongoose.isValidObjectId(req.user.userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+
+  try {
+    const projects = await findProjects();
+    if (!projects) return res.status(404).json({ error: "Project not found." });
+
+    const userProjects = projects.filter((project) =>
+      project.users.some((user) => user.userId.toString() === id)
+    );
+
+    res.status(201).json(userProjects);
+  } catch (err) {
+    if (err instanceof Error) {
+      res.status(500).json({ error: err.message });
+    } else {
+      res.status(500).json({ error: "An unknown error occurred" });
+    }
+  }
+});
+
 router.get("/:id", async (req: Request, res: Response) => {
   const id = req.params.id;
 
@@ -77,35 +105,6 @@ router.get("/:id", async (req: Request, res: Response) => {
     }
   }
 });
-//need to be finnsihed
-// router.get("/user", auth, async (req: Request, res: Response) => {
-//   const id = req.user!.userId;
-
-//   if (!req.user?.userId) {
-//     return res.status(400).json({ error: "User ID is required" });
-//   }
-
-//   if (!mongoose.isValidObjectId(req.user.userId)) {
-//     return res.status(400).json({ error: "Invalid user ID" });
-//   }
-
-//   try {
-//     const projects = await findProjects();
-//     if (!projects) return res.status(404).json({ error: "Project not found." });
-
-//     const userProjects = projects.filter((project) =>
-//       project.users.some((user) => user.userId.toString() === id)
-//     );
-
-//     res.status(201).json(userProjects);
-//   } catch (err) {
-//     if (err instanceof Error) {
-//       res.status(500).json({ error: err.message });
-//     } else {
-//       res.status(500).json({ error: "An unknown error occurred" });
-//     }
-//   }
-// });
 
 router.put("/:id", auth, async (req: Request, res: Response) => {
   const id = req.params.id;
@@ -154,12 +153,12 @@ router.delete("/:id", auth, async (req: Request, res: Response) => {
     return res.status(400).json({ error: "ID is required" });
   }
 
-  if (!mongoose.isValidObjectId(id)) {
-    return res.status(400).json({ error: "Invalid ID" });
-  }
-
   if (!req.user?.userId) {
     return res.status(400).json({ error: "User ID is required" });
+  }
+
+  if (!mongoose.isValidObjectId(id)) {
+    return res.status(400).json({ error: "Invalid ID" });
   }
 
   if (!mongoose.isValidObjectId(req.user.userId)) {
@@ -187,7 +186,7 @@ router.delete("/:id", auth, async (req: Request, res: Response) => {
   }
 });
 
-router.post("/user/:id", auth, async (req: Request, res: Response) => {
+router.post("/assign/:id", auth, async (req: Request, res: Response) => {
   const projectId = req.params.id;
   const userId = req.body.userId;
 
@@ -199,16 +198,16 @@ router.post("/user/:id", auth, async (req: Request, res: Response) => {
     return res.status(400).json({ error: "userId is required" });
   }
 
+  if (!req.user?.userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
   if (!mongoose.isValidObjectId(projectId)) {
     return res.status(400).json({ error: "Invalid projectId" });
   }
 
   if (!mongoose.isValidObjectId(userId)) {
     return res.status(400).json({ error: "Invalid userId" });
-  }
-
-  if (!req.user?.userId) {
-    return res.status(400).json({ error: "User ID is required" });
   }
 
   if (!mongoose.isValidObjectId(req.user.userId)) {
@@ -233,7 +232,7 @@ router.post("/user/:id", auth, async (req: Request, res: Response) => {
   }
 });
 
-router.put("/user/:id", auth, async (req: Request, res: Response) => {
+router.put("/assign/:id", auth, async (req: Request, res: Response) => {
   const projectId = req.params.id;
   const userId = req.body.userId;
   const newRole = req.body.newRole;
@@ -251,6 +250,14 @@ router.put("/user/:id", auth, async (req: Request, res: Response) => {
 
   if (!req.user?.userId) {
     return res.status(400).json({ error: "User ID is required" });
+  }
+
+  if (!mongoose.isValidObjectId(projectId)) {
+    return res.status(400).json({ error: "Invalid user projectId" });
+  }
+
+  if (!mongoose.isValidObjectId(userId)) {
+    return res.status(400).json({ error: "Invalid user userId" });
   }
 
   if (!mongoose.isValidObjectId(req.user.userId)) {

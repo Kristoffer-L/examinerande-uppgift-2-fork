@@ -7,7 +7,6 @@ import {
   updateTask,
   deleteTask,
   statusChangeTask,
-  assignedTask,
   assignTags,
 } from "../db/taskCrud.js";
 import type { Request, Response } from "express";
@@ -20,6 +19,14 @@ router.post("/:projectId", auth, async (req: Request, res: Response) => {
   if (!projectId) {
     return res.status(400).json({ error: "Project ID is required" });
   }
+  if (!req.user?.userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  if (!mongoose.isValidObjectId(req.user.userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+
   try {
     const role = await getUserRoleInProject(projectId, req.user!.userId);
     if (role !== "admin" && role !== "member") {
@@ -87,6 +94,14 @@ router.put("/:id", auth, async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Invalid ID" });
   }
 
+  if (!req.user?.userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  if (!mongoose.isValidObjectId(req.user.userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+
   try {
     const task = await findTask(id);
     if (!task) {
@@ -120,7 +135,7 @@ router.put("/:id", auth, async (req: Request, res: Response) => {
   }
 });
 
-router.delete("/:id", async (req: Request, res: Response) => {
+router.delete("/:id", auth, async (req: Request, res: Response) => {
   const id = req.params.id;
 
   if (!id) {
@@ -128,6 +143,14 @@ router.delete("/:id", async (req: Request, res: Response) => {
   }
   if (!mongoose.isValidObjectId(id)) {
     return res.status(400).json({ error: "Invalid ID" });
+  }
+
+  if (!req.user?.userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  if (!mongoose.isValidObjectId(req.user.userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
   }
 
   try {
@@ -166,12 +189,23 @@ router.delete("/:id", async (req: Request, res: Response) => {
 router.put("/status/:id", auth, async (req: Request, res: Response) => {
   const id = req.params.id;
   const userId = req.user?.userId;
+
   if (!id) {
     return res.status(400).json({ error: "ID is required" });
   }
+
   if (!mongoose.isValidObjectId(id)) {
     return res.status(400).json({ error: "Invalid ID" });
   }
+
+  if (!req.user?.userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  if (!mongoose.isValidObjectId(req.user.userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+
   try {
     const task = await findTask(id);
     if (!task) {
@@ -211,55 +245,6 @@ router.put("/status/:id", auth, async (req: Request, res: Response) => {
   }
 });
 
-router.put("/assign/:id", async (req: Request, res: Response) => {
-  const taskId = req.params.id;
-  const userId = req.body.userId;
-
-  if (!taskId) {
-    return res.status(400).json({ error: "taskId is required" });
-  }
-  if (!userId) {
-    return res.status(400).json({ error: "userId is required" });
-  }
-
-  if (!mongoose.isValidObjectId(taskId)) {
-    return res.status(400).json({ error: "Invalid TaskID" });
-  }
-  if (!mongoose.isValidObjectId(userId)) {
-    return res.status(400).json({ error: "Invalid UserID" });
-  }
-
-  try {
-    const task = await findTask(taskId);
-    if (!task) {
-      return res.status(400).json({ error: "task is required" });
-    }
-    if (!task.projectId) {
-      return res.status(400).json({ error: "projectId is required" });
-    }
-
-    const projectId = task.projectId;
-
-    if (!projectId) {
-      return res.status(400).json({ error: "projectId is required" });
-    }
-
-    const role = await getUserRoleInProject(projectId, req.user!.userId);
-    if (role !== "admin" && role !== "member") {
-      return res.status(403).json({ error: "Missing permission" });
-    }
-    const updatedTask = await assignedTask(taskId, userId);
-
-    res.status(201).json(updatedTask);
-  } catch (err) {
-    if (err instanceof Error) {
-      res.status(500).json({ error: err.message });
-    } else {
-      res.status(500).json({ error: "An unknown error occurred" });
-    }
-  }
-});
-
 router.put("/tags/:id", auth, async (req: Request, res: Response) => {
   const id = req.params.id;
   const tags = req.body.tags;
@@ -271,6 +256,15 @@ router.put("/tags/:id", auth, async (req: Request, res: Response) => {
   if (!tags) {
     return res.status(400).json({ error: "tags is required" });
   }
+
+  if (!req.user?.userId) {
+    return res.status(400).json({ error: "User ID is required" });
+  }
+
+  if (!mongoose.isValidObjectId(req.user.userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+
   try {
     const task = await findTask(id);
     if (!task) {
